@@ -7,7 +7,6 @@ import android.speech.tts.TextToSpeech
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.DisposableEffect
 import android.widget.Toast
-import com.google.android.gms.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -110,7 +109,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Text("AI estimates are educational, not medical advice.",color=Muted,fontSize=12.sp)
  }
 }
-@Composable private fun Settings(g:Int,w:Float,t:Float,m:Modifier,goal:()->Unit,weight:()->Unit){Column(m.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Settings",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);TextButton(onClick=goal){Text("Daily calorie goal: "+g+" kcal")};TextButton(onClick=weight){Text("Current weight: "+w+" kg")};Info("Target weight",t.toString()+" kg");Info("Privacy","Food logs and settings are stored locally on this device.");Info("Leanora","Android • 0.1.0")}}
+@Composable private fun Settings(g:Int,w:Float,t:Float,m:Modifier,goal:()->Unit,weight:()->Unit,dark:Boolean,onDark:(Boolean)->Unit,backend:String,onBackend:(String)->Unit,target:()->Unit){Column(m.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Settings",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);TextButton(onClick=goal){Text("Daily calorie goal: "+g+" kcal")};TextButton(onClick=weight){Text("Current weight: "+w+" kg")};TextButton(onClick=target){Text("Target weight: "+t+" kg")};Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Dark mode",Modifier.weight(1f),color=Ink);Switch(checked=dark,onCheckedChange=onDark)};Text("Backend API URL",color=Ink,fontWeight=FontWeight.SemiBold);OutlinedTextField(value=backend,onValueChange=onBackend,modifier=Modifier.fillMaxWidth(),placeholder={Text("https://your-service.onrender.com")},singleLine=true);Info("Privacy","Food logs and settings are stored locally on this device.");Info("Leanora","Android • 0.2.0")}}
 @Composable private fun Macro(title:String,value:String,m:Modifier){Card(m,shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)){Column(Modifier.padding(12.dp)){Text(title,color=Muted,fontSize=12.sp);Text(value,color=Ink,fontWeight=FontWeight.Bold)}}}
 @Composable private fun FoodCard(x:Food,m:Modifier=Modifier){Card(m,shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(x.name,color=Ink,fontWeight=FontWeight.SemiBold);Text(x.meal+" • P"+x.protein+" C"+x.carbs+" F"+x.fat+"g",fontSize=11.sp,color=Muted)};Text(x.kcal.toString()+" kcal",color=Green,fontWeight=FontWeight.Bold)}}}
 @Composable private fun Info(title:String,body:String){Card(shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(title,color=Ink,fontWeight=FontWeight.SemiBold);Text(body,color=Muted)}}}
