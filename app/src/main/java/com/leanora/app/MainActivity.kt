@@ -72,7 +72,50 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
    text = {
     Column {
      Button(onClick={customDialog=true},modifier=Modifier.fillMaxWidth()){Text("Custom food / portion")}
-     OutlinedButton(onClick={GmsBarcodeScanning.getClient(scanContext,GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_EAN_13,Barcode.FORMAT_EAN_8,Barcode.FORMAT_UPC_A,Barcode.FORMAT_UPC_E,Barcode.FORMAT_CODE_128,Barcode.FORMAT_CODE_39).enableAutoZoom().build()).startScan().addOnSuccessListener{barcode->val code=barcode.rawValue?.filter(Char::isDigit).orEmpty();if(code.isNotBlank()){barcodeText=code;barcodeLoading=true;scope.launch{val result=withContext(Dispatchers.IO){lookupFoodBarcode(code)};if(result.kcal>0){foods=foods+result;saveFoods(prefs,foods,diaryDate);picker=false;Toast.makeText(scanContext,"Added "+result.name,Toast.LENGTH_LONG).show()}else Toast.makeText(scanContext,"No nutrition found. Enter details manually.",Toast.LENGTH_LONG).show();barcodeLoading=false}}}.addOnFailureListener{Toast.makeText(scanContext,"Barcode scanner unavailable. Try manual lookup.",Toast.LENGTH_LONG).show()}.addOnCanceledListener{}},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.QrCodeScanner,null);Spacer(Modifier.width(8.dp));Text("Scan product barcode")}
+     OutlinedButton(
+      onClick = {
+       val scannerOptions = GmsBarcodeScannerOptions.Builder()
+        .setBarcodeFormats(
+         Barcode.FORMAT_EAN_13,
+         Barcode.FORMAT_EAN_8,
+         Barcode.FORMAT_UPC_A,
+         Barcode.FORMAT_UPC_E,
+         Barcode.FORMAT_CODE_128,
+         Barcode.FORMAT_CODE_39
+        )
+        .enableAutoZoom()
+        .build()
+       GmsBarcodeScanning.getClient(scanContext, scannerOptions)
+        .startScan()
+        .addOnSuccessListener { barcode ->
+         val code = barcode.rawValue?.filter(Char::isDigit).orEmpty()
+         if (code.isNotBlank()) {
+          barcodeText = code
+          barcodeLoading = true
+          scope.launch {
+           val result = withContext(Dispatchers.IO) { lookupFoodBarcode(code) }
+           if (result.kcal > 0) {
+            foods = foods + result
+            saveFoods(prefs, foods, diaryDate)
+            picker = false
+            Toast.makeText(scanContext, "Added " + result.name, Toast.LENGTH_LONG).show()
+           } else {
+            Toast.makeText(scanContext, "No nutrition found. Enter details manually.", Toast.LENGTH_LONG).show()
+           }
+           barcodeLoading = false
+          }
+         }
+        }
+        .addOnFailureListener {
+         Toast.makeText(scanContext, "Scanner unavailable. Try manual lookup.", Toast.LENGTH_LONG).show()
+        }
+      },
+      modifier = Modifier.fillMaxWidth()
+     ) {
+      Icon(Icons.Default.QrCodeScanner, null)
+      Spacer(Modifier.width(8.dp))
+      Text("Scan product barcode")
+     }
       OutlinedButton(onClick={barcodeDialog=true},modifier=Modifier.fillMaxWidth()){Text("Enter barcode manually")}
 
      Button(onClick = { cameraLauncher.launch(null) }, modifier = Modifier.fillMaxWidth()) { Text("Camera • estimate food") }
