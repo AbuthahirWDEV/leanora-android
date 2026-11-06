@@ -49,7 +49,45 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Scaffold(containerColor=if(dark)Color(0xFF101815)else Cream,bottomBar={NavigationBar(containerColor=if(dark)Color(0xFF1A2420)else Color.White){NavigationBarItem(tab==0,{tab=0},icon={Icon(Icons.Default.Home,null)},label={Text("Today")});NavigationBarItem(tab==1,{tab=1},icon={Icon(Icons.Default.Restaurant,null)},label={Text("Food")});NavigationBarItem(tab==2,{tab=2},icon={Icon(Icons.Default.ShowChart,null)},label={Text("Progress")});NavigationBarItem(tab==3,{tab=3},icon={Icon(Icons.Default.SmartToy,null)},label={Text("Coach")});NavigationBarItem(tab==4,{tab=4},icon={Icon(Icons.Default.Settings,null)},label={Text("Settings")})}},floatingActionButton={if(tab<2)FloatingActionButton(onClick={picker=true},containerColor=Green){Icon(Icons.Default.Add,"Add food",tint=Color.White)}}){pad->
  when(tab){0->Dashboard(foods,kcal,goal,p,c,f,Modifier.padding(pad)){picker=true};1->Diary(foods,Modifier.padding(pad),{picker=true},{i->foods=foods.toMutableList().also{it.removeAt(i)};saveFoods(prefs,foods)});2->Progress(weight,target,prefs.getString("weight_history","[]") ?: "[]",Modifier.padding(pad)){weightText=weight.toString();weightDialog=true};3->Coach(kcal,goal,p,Modifier.padding(pad),backendUrl);else->Settings(goal,weight,target,Modifier.padding(pad),{goalText=goal.toString();goalDialog=true},{weightText=weight.toString();weightDialog=true},dark,{dark=it;prefs.edit().putBoolean("dark",it).apply()},backendUrl,{backendUrl=it;prefs.edit().putString("backend",it).apply()},{targetText=target.toString();targetDialog=true})}
  }
- if(picker)AlertDialog(onDismissRequest={picker=false},title={Text("Add food")},text={Column{Button(onClick={cameraLauncher.launch(null)},modifier=Modifier.fillMaxWidth()){Text("Camera • estimate food")};Button(onClick={val intent=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM).putExtra(RecognizerIntent.EXTRA_LANGUAGE,"en-IN").putExtra(RecognizerIntent.EXTRA_PROMPT,"Say food name and quantity");voiceLauncher.launch(intent)},modifier=Modifier.fillMaxWidth()){Text("Voice food logging • English")};Button(onClick={val intent=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM).putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ta-IN").putExtra(RecognizerIntent.EXTRA_PROMPT,"உணவின் பெயர் மற்றும் அளவை சொல்லுங்கள்");voiceLauncher.launch(intent)},modifier=Modifier.fillMaxWidth()){Text("தமிழில் உணவு பதிவு")};LazyColumn(Modifier.heightIn(max=350.dp)){items(catalog){food->TextButton(onClick={foods=foods+food;saveFoods(prefs,foods);picker=false},modifier=Modifier.fillMaxWidth()){Column(Modifier.fillMaxWidth()){Text(food.name,color=Ink,fontWeight=FontWeight.SemiBold);Text(food.kcal.toString()+" kcal • P"+food.protein+" C"+food.carbs+" F"+food.fat+"g",color=Muted)}}}}}}},confirmButton={TextButton(onClick={picker=false}){Text("Close")}})
+ if (picker) {
+  AlertDialog(
+   onDismissRequest = { picker = false },
+   title = { Text("Add food") },
+   text = {
+    Column {
+     Button(onClick = { cameraLauncher.launch(null) }, modifier = Modifier.fillMaxWidth()) { Text("Camera • estimate food") }
+     Button(onClick = {
+      val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+       .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+       .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-IN")
+       .putExtra(RecognizerIntent.EXTRA_PROMPT, "Say food name and quantity")
+      voiceLauncher.launch(intent)
+     }, modifier = Modifier.fillMaxWidth()) { Text("Voice food logging • English") }
+     Button(onClick = {
+      val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+       .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+       .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ta-IN")
+       .putExtra(RecognizerIntent.EXTRA_PROMPT, "உணவின் பெயர் மற்றும் அளவை சொல்லுங்கள்")
+      voiceLauncher.launch(intent)
+     }, modifier = Modifier.fillMaxWidth()) { Text("தமிழில் உணவு பதிவு") }
+     LazyColumn(Modifier.heightIn(max = 350.dp)) {
+      items(catalog) { food ->
+       TextButton(
+        onClick = { foods = foods + food; saveFoods(prefs, foods); picker = false },
+        modifier = Modifier.fillMaxWidth()
+       ) {
+        Column(Modifier.fillMaxWidth()) {
+         Text(food.name, color = Ink, fontWeight = FontWeight.SemiBold)
+         Text(food.kcal.toString() + " kcal • P" + food.protein + " C" + food.carbs + " F" + food.fat + "g", color = Muted)
+        }
+       }
+      }
+     }
+    }
+   },
+   confirmButton = { TextButton(onClick = { picker = false }) { Text("Close") } }
+  )
+ }
  if(goalDialog)AlertDialog(onDismissRequest={goalDialog=false},title={Text("Daily calorie goal")},text={OutlinedTextField(goalText,{goalText=it.filter(Char::isDigit)},label={Text("kcal")})},confirmButton={TextButton(onClick={goalText.toIntOrNull()?.let{if(it in 800..6000){goal=it;prefs.edit().putInt("goal",it).apply()}};goalDialog=false}){Text("Save")}})
  if(targetDialog)AlertDialog(onDismissRequest={targetDialog=false},title={Text("Target weight")},text={OutlinedTextField(targetText,{targetText=it},label={Text("kg")})},confirmButton={TextButton(onClick={targetText.toFloatOrNull()?.let{if(it in 30f..300f){target=it;prefs.edit().putFloat("target",it).apply()}};targetDialog=false}){Text("Save")}})
  if(weightDialog)AlertDialog(onDismissRequest={weightDialog=false},title={Text("Current weight")},text={OutlinedTextField(weightText,{weightText=it},label={Text("kg")})},confirmButton={TextButton(onClick={weightText.toFloatOrNull()?.let{if(it in 30f..300f){weight=it;val history=JSONArray(prefs.getString("weight_history","[]")?: "[]");history.put(JSONObject().put("date",LocalDate.now().toString()).put("kg",it));prefs.edit().putFloat("weight",it).putString("weight_history",history.toString()).apply()}};weightDialog=false}){Text("Save")}})
