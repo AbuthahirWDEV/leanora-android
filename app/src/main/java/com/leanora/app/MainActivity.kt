@@ -1,71 +1,50 @@
 package com.leanora.app
-
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.json.JSONArray
+import org.json.JSONObject
 
-private val Cream = Color(0xFFF7F5EF)
-private val Emerald = Color(0xFF176B52)
-private val Ink = Color(0xFF1C2924)
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { LeanoraApp() }
-    }
+private val Cream=Color(0xFFF7F5EF); private val Green=Color(0xFF176B52); private val Ink=Color(0xFF1C2924); private val Muted=Color(0xFF718078)
+data class Food(val name:String,val kcal:Int,val protein:Int,val carbs:Int,val fat:Int,val meal:String)
+private val catalog=listOf(Food("Idli (2)",130,4,26,1,"Breakfast"),Food("Plain dosa",170,4,30,4,"Breakfast"),Food("Chapati",120,3,22,3,"Lunch"),Food("Cooked rice (150 g)",195,4,42,0,"Lunch"),Food("Chicken breast (100 g)",165,31,0,4,"Lunch"),Food("Boiled egg",78,6,1,5,"Snack"),Food("Banana",105,1,27,0,"Snack"),Food("Paneer (100 g)",265,18,4,20,"Dinner"),Food("Curd (100 g)",61,3,5,3,"Dinner"))
+class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{LeanoraApp(applicationContext)}}}
+@Composable fun LeanoraApp(ctx:Context){
+ val prefs=remember{ctx.getSharedPreferences("leanora",Context.MODE_PRIVATE)}
+ var foods by remember{mutableStateOf(loadFoods(prefs))}; var goal by remember{mutableIntStateOf(prefs.getInt("goal",1850))}; var weight by remember{mutableFloatStateOf(prefs.getFloat("weight",78f))}; var target by remember{mutableFloatStateOf(prefs.getFloat("target",72f))}
+ var tab by remember{mutableIntStateOf(0)}; var picker by remember{mutableStateOf(false)}; var goalDialog by remember{mutableStateOf(false)}; var weightDialog by remember{mutableStateOf(false)}; var goalText by remember{mutableStateOf(goal.toString())}; var weightText by remember{mutableStateOf(weight.toString())}
+ val kcal=foods.sumOf{it.kcal}; val p=foods.sumOf{it.protein}; val c=foods.sumOf{it.carbs}; val f=foods.sumOf{it.fat}
+ MaterialTheme(colorScheme=lightColorScheme(primary=Green,background=Cream,surface=Color.White)){
+ Scaffold(containerColor=Cream,bottomBar={NavigationBar(containerColor=Color.White){NavigationBarItem(tab==0,{tab=0},icon={Icon(Icons.Default.Home,null)},label={Text("Today")});NavigationBarItem(tab==1,{tab=1},icon={Icon(Icons.Default.Restaurant,null)},label={Text("Food")});NavigationBarItem(tab==2,{tab=2},icon={Icon(Icons.Default.ShowChart,null)},label={Text("Progress")});NavigationBarItem(tab==3,{tab=3},icon={Icon(Icons.Default.SmartToy,null)},label={Text("Coach")});NavigationBarItem(tab==4,{tab=4},icon={Icon(Icons.Default.Settings,null)},label={Text("Settings")})}},floatingActionButton={if(tab<2)FloatingActionButton(onClick={picker=true},containerColor=Green){Icon(Icons.Default.Add,"Add food",tint=Color.White)}}){pad->
+ when(tab){0->Dashboard(foods,kcal,goal,p,c,f,Modifier.padding(pad)){picker=true};1->Diary(foods,Modifier.padding(pad),{picker=true},{i->foods=foods.toMutableList().also{it.removeAt(i)};saveFoods(prefs,foods)});2->Progress(weight,target,Modifier.padding(pad)){weightText=weight.toString();weightDialog=true};3->Coach(kcal,goal,p,Modifier.padding(pad));else->Settings(goal,weight,target,Modifier.padding(pad),{goalText=goal.toString();goalDialog=true},{weightText=weight.toString();weightDialog=true})}
+ }
+ if(picker)AlertDialog(onDismissRequest={picker=false},title={Text("Add food")},text={LazyColumn(Modifier.heightIn(max=400.dp)){items(catalog){food->TextButton(onClick={foods=foods+food;saveFoods(prefs,foods);picker=false},modifier=Modifier.fillMaxWidth()){Column(Modifier.fillMaxWidth()){Text(food.name,color=Ink,fontWeight=FontWeight.SemiBold);Text(food.kcal.toString()+" kcal • P"+food.protein+" C"+food.carbs+" F"+food.fat+"g",color=Muted)}}}}},confirmButton={TextButton(onClick={picker=false}){Text("Close")}})
+ if(goalDialog)AlertDialog(onDismissRequest={goalDialog=false},title={Text("Daily calorie goal")},text={OutlinedTextField(goalText,{goalText=it.filter(Char::isDigit)},label={Text("kcal")})},confirmButton={TextButton(onClick={goalText.toIntOrNull()?.let{if(it in 800..6000){goal=it;prefs.edit().putInt("goal",it).apply()}};goalDialog=false}){Text("Save")}})
+ if(weightDialog)AlertDialog(onDismissRequest={weightDialog=false},title={Text("Current weight")},text={OutlinedTextField(weightText,{weightText=it},label={Text("kg")})},confirmButton={TextButton(onClick={weightText.toFloatOrNull()?.let{if(it in 30f..300f){weight=it;prefs.edit().putFloat("weight",it).apply()}};weightDialog=false}){Text("Save")}})
+ }
 }
-
-@Composable
-fun LeanoraApp() {
-    MaterialTheme(colorScheme = lightColorScheme(primary = Emerald, background = Cream)) {
-        Surface(modifier = Modifier.fillMaxSize(), color = Cream) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                Text("LEANORA", color = Emerald, fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
-                Text("Your wellness,\nin balance.", color = Ink, fontSize = 32.sp, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
-                Text("Daily nutrition overview", color = Ink.copy(alpha = 0.65f), fontSize = 16.sp)
-                Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Emerald)) {
-                    Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Calories remaining", color = Color.White.copy(alpha = 0.8f))
-                        Text("1,250 kcal", color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-                        Text("of 1,850 kcal daily goal", color = Color.White.copy(alpha = 0.8f))
-                    }
-                }
-                Text("Today's nutrition", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MacroCard("Protein", "62 g", Modifier.weight(1f))
-                    MacroCard("Carbs", "148 g", Modifier.weight(1f))
-                    MacroCard("Fat", "42 g", Modifier.weight(1f))
-                }
-                Spacer(Modifier.weight(1f))
-                Button(onClick = {}, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(18.dp)) {
-                    Text("+ Log food", fontSize = 17.sp)
-                }
-                Text("Starter UI • nutrition tracking and AI features coming next", color = Ink.copy(alpha = 0.5f), fontSize = 12.sp)
-            }
-        }
-    }
-}
-
-@Composable
-private fun MacroCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-        Column(modifier = Modifier.padding(14.dp), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(label, color = Ink.copy(alpha = 0.6f), fontSize = 12.sp)
-            Text(value, color = Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        }
-    }
-}
+@Composable private fun Dashboard(food:List<Food>,k:Int,g:Int,p:Int,c:Int,f:Int,m:Modifier,add:()->Unit){LazyColumn(m.fillMaxSize().padding(horizontal=20.dp),verticalArrangement=Arrangement.spacedBy(14.dp),contentPadding=PaddingValues(top=20.dp,bottom=20.dp)){item{Text("LEANORA",color=Green,fontWeight=FontWeight.Bold,letterSpacing=3.sp);Text("Your wellness,\nin balance.",fontSize=30.sp,fontWeight=FontWeight.Bold,color=Ink);Text("Daily nutrition overview",color=Muted)};item{Card(shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=Green)){Column(Modifier.fillMaxWidth().padding(22.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("Calories remaining",color=Color.White.copy(alpha=.8f));Text((g-k).coerceAtLeast(0).toString()+" kcal",fontSize=34.sp,fontWeight=FontWeight.Bold,color=Color.White);Text(k.toString()+" / "+g+" kcal consumed",color=Color.White);LinearProgressIndicator(progress={(k.toFloat()/g).coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth(),color=Color.White,trackColor=Color.White.copy(alpha=.2f))}}};item{Text("Macros today",fontSize=20.sp,fontWeight=FontWeight.SemiBold,color=Ink);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Macro("Protein",p.toString()+"g",Modifier.weight(1f));Macro("Carbs",c.toString()+"g",Modifier.weight(1f));Macro("Fat",f.toString()+"g",Modifier.weight(1f))}};item{Row(verticalAlignment=Alignment.CenterVertically){Text("Today's meals",fontSize=20.sp,fontWeight=FontWeight.SemiBold,color=Ink);Spacer(Modifier.weight(1f));TextButton(onClick=add){Text("Add +")}}};if(food.isEmpty())item{Info("Nothing logged yet","Add food to start tracking nutrition.")};items(food.takeLast(5).reversed()){FoodCard(it)}}}
+@Composable private fun Diary(food:List<Food>,m:Modifier,add:()->Unit,remove:(Int)->Unit){Column(m.fillMaxSize().padding(16.dp)){Text("Food diary",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);Text("Track meals throughout the day",color=Muted);Button(onClick=add,modifier=Modifier.fillMaxWidth()){Text("Add food")};LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)){items(food.size){i->Row(verticalAlignment=Alignment.CenterVertically){FoodCard(food[i],Modifier.weight(1f));TextButton(onClick={remove(i)}){Text("Remove")}}}}}}
+@Composable private fun Progress(w:Float,t:Float,m:Modifier,edit:()->Unit){Column(m.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){Text("Progress",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);Info("Current weight",w.toString()+" kg");Info("Target weight",t.toString()+" kg");Button(onClick=edit){Text("Update weight")};Info("Weight trend","Historical chart will be enabled when multiple measurements are recorded.")}}
+@Composable private fun Coach(k:Int,g:Int,p:Int,m:Modifier){Column(m.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){Text("Leanora Coach",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);Info("Daily snapshot","You have logged "+k+" / "+g+" kcal and "+p+" g protein.");Info("Nutrition tip","Include protein and vegetables in your next meal.");Info("AI assistant","Gemini chat and voice features will connect through a secure backend in a later milestone.")}}
+@Composable private fun Settings(g:Int,w:Float,t:Float,m:Modifier,goal:()->Unit,weight:()->Unit){Column(m.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Settings",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);TextButton(onClick=goal){Text("Daily calorie goal: "+g+" kcal")};TextButton(onClick=weight){Text("Current weight: "+w+" kg")};Info("Target weight",t.toString()+" kg");Info("Privacy","Food logs and settings are stored locally on this device.");Info("Leanora","Android • 0.1.0")}}
+@Composable private fun Macro(title:String,value:String,m:Modifier){Card(m,shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.padding(12.dp)){Text(title,color=Muted,fontSize=12.sp);Text(value,color=Ink,fontWeight=FontWeight.Bold)}}}
+@Composable private fun FoodCard(x:Food,m:Modifier=Modifier){Card(m,shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(x.name,color=Ink,fontWeight=FontWeight.SemiBold);Text(x.meal+" • P"+x.protein+" C"+x.carbs+" F"+x.fat+"g",fontSize=11.sp,color=Muted)};Text(x.kcal.toString()+" kcal",color=Green,fontWeight=FontWeight.Bold)}}}
+@Composable private fun Info(title:String,body:String){Card(shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(title,color=Ink,fontWeight=FontWeight.SemiBold);Text(body,color=Muted)}}}
+private fun saveFoods(p:android.content.SharedPreferences,foods:List<Food>){val a=JSONArray();foods.forEach{a.put(JSONObject().put("name",it.name).put("kcal",it.kcal).put("protein",it.protein).put("carbs",it.carbs).put("fat",it.fat).put("meal",it.meal))};p.edit().putString("foods",a.toString()).apply()}
+private fun loadFoods(p:android.content.SharedPreferences):List<Food>{val raw=p.getString("foods",null)?:return emptyList();return try{val a=JSONArray(raw);(0 until a.length()).map{val o=a.getJSONObject(it);Food(o.getString("name"),o.getInt("kcal"),o.getInt("protein"),o.getInt("carbs"),o.getInt("fat"),o.getString("meal"))}}catch(_:Exception){emptyList()}}
