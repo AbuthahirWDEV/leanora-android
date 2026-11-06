@@ -8,7 +8,7 @@ Leanora is a native Android nutrition and wellness tracker built with Kotlin and
 - Estimated daily calorie target and calorie/macronutrient dashboard
 - Food diary with date navigation and local persistence
 - Food catalog search, custom food entry, edit and delete
-- Food logging by voice (English and Tamil)
+- Food logging by voice (English and Tamil), with AI portion and macro estimation from spoken food descriptions
 - Food photo calorie estimate using the backend AI service
 - Barcode scanning with Google ML Kit Code Scanner and Open Food Facts nutrition lookup
 - Manual barcode entry as a fallback
@@ -52,6 +52,6 @@ The in-app ML Kit scanner uses Google Play services. On first use, Google Play s
 Endpoints:
 - `GET /health`
 - `POST /v1/coach`
-- `POST /v1/food-estimate` (multipart image upload; JPEG/PNG/WEBP, max 8 MB)
+- `POST /v1/food-estimate` (multipart image upload; JPEG/PNG/WEBP, max 8 MB)\n- `POST /v1/food-text-estimate` (JSON food description in English or Tamil; estimated calories, macros, portion, and meal category)
 
 AI endpoints require a valid server-side Gemini API key. The app can continue to use local food logging and tracking without AI service availability.
