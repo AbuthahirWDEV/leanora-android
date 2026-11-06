@@ -112,7 +112,6 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  }
 }
 
-}
 @Composable private fun LeanoraSplash(){
  val transition=rememberInfiniteTransition(label="splash-loader")
  val alpha by transition.animateFloat(initialValue=.35f,targetValue=1f,animationSpec=infiniteRepeatable(tween(700),RepeatMode.Reverse),label="loader-alpha")
