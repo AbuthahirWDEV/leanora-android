@@ -216,6 +216,7 @@ private fun calorieTarget(age:Int,sex:String,height:Int,weight:Float,activity:St
  Text("Leanora Coach",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink)
  Info("Today","Calories: "+k+" / "+g+" kcal • Protein: "+p+" g")
  Info("Coach",answer)
+ OutlinedButton(onClick={tts.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"leanora-coach")},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.VolumeUp,null);Spacer(Modifier.width(8.dp));Text("Read coach response aloud")}
  OutlinedTextField(question,{question=it},modifier=Modifier.fillMaxWidth(),label={Text("Ask a nutrition question")})
  Button(enabled=!loading&&question.isNotBlank(),onClick={loading=true;scope.launch{answer=withContext(Dispatchers.IO){askLeanora(api,question,k,g,p)};loading=false}},modifier=Modifier.fillMaxWidth()){Text(if(loading)"Thinking..." else "Ask AI Coach")}
  Text("AI estimates are educational, not medical advice.",color=Muted,fontSize=12.sp)
