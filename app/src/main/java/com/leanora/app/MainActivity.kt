@@ -236,7 +236,34 @@ private fun calorieTarget(age:Int,sex:String,height:Int,weight:Float,activity:St
   SettingsSection("Hydration",Icons.Default.WaterDrop){SettingsAction(Icons.Default.WaterDrop,"Daily water target","${waterGoal} ml • Tap to change",{waterGoalText=waterGoal.toString();waterGoalDialog=true})}
   SettingsSection("Appearance",Icons.Default.Palette){Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.DarkMode,null,tint=Green);Column(Modifier.weight(1f).padding(start=12.dp)){Text("Dark mode",fontWeight=FontWeight.SemiBold,color=Ink);Text("Use a darker color scheme",fontSize=12.sp,color=Muted)};Switch(checked=dark,onCheckedChange=onDark)}}
   SettingsSection("Connectivity",Icons.Default.Cloud){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("Backend API URL",fontWeight=FontWeight.SemiBold,color=Ink);OutlinedTextField(value=backend,onValueChange=onBackend,modifier=Modifier.fillMaxWidth(),placeholder={Text("https://your-service.onrender.com")},singleLine=true,shape=RoundedCornerShape(14.dp),leadingIcon={Icon(Icons.Default.Link,null)});Button(enabled=!apiChecking&&backend.isNotBlank(),onClick={apiChecking=true;apiOk=null;apiStatus="Checking server…";scope.launch{val result=withContext(Dispatchers.IO){try{val conn=(URL(backend.trim().trimEnd('/')).openConnection() as java.net.HttpURLConnection);conn.requestMethod="GET";conn.connectTimeout=10000;conn.readTimeout=10000;val code=conn.responseCode;conn.disconnect();code}catch(e:Exception){-1}};apiChecking=false;apiOk=result in 200..499;apiStatus=if(result in 200..499)"Server reachable (HTTP $result)" else "Connection failed • check URL/network"}} ,modifier=Modifier.fillMaxWidth()){Text(if(apiChecking)"Testing connection…" else "Test backend connection")};Text(apiStatus,color=when(apiOk){true->Color(0xFF248A57);false->Color(0xFFB3261E);null->Muted},fontSize=13.sp)}}
-  if(waterGoalDialog)AlertDialog(onDismissRequest={waterGoalDialog=false},title={Text("Daily water target")},text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){Text("Set a daily hydration goal in millilitres.");OutlinedTextField(value=waterGoalText,onValueChange={waterGoalText=it.filter(Char::isDigit).take(5)},label={Text("Goal (ml)")},singleLine=true)}} ,confirmButton={TextButton(onClick={waterGoalText.toIntOrNull()?.let{if(it in 500..10000){onWaterGoalChange(it)}};waterGoalDialog=false}){Text("Save")}},dismissButton={TextButton(onClick={waterGoalDialog=false}){Text("Cancel")}})\n  SettingsSection("Privacy & app",Icons.Default.Security){Row(Modifier.fillMaxWidth().padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Lock,null,tint=Green);Column(Modifier.weight(1f).padding(start=12.dp)){Text("On-device privacy",fontWeight=FontWeight.SemiBold,color=Ink);Text("Food logs and settings are stored locally on this device.",fontSize=13.sp,color=Muted)}};Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Info,null,tint=Green);Text("Leanora • Android",Modifier.weight(1f).padding(start=12.dp),color=Ink);Text("v0.3",color=Muted)}}
+  if (waterGoalDialog) {
+    AlertDialog(
+     onDismissRequest = { waterGoalDialog = false },
+     title = { Text("Daily water target") },
+     text = {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+       Text("Set a daily hydration goal in millilitres.")
+       OutlinedTextField(
+        value = waterGoalText,
+        onValueChange = { waterGoalText = it.filter(Char::isDigit).take(5) },
+        label = { Text("Goal (ml)") },
+        singleLine = true
+       )
+      }
+     },
+     confirmButton = {
+      TextButton(onClick = {
+       val goalValue = waterGoalText.toIntOrNull()
+       if (goalValue != null && goalValue in 500..10000) onWaterGoalChange(goalValue)
+       waterGoalDialog = false
+      }) { Text("Save") }
+     },
+     dismissButton = {
+      TextButton(onClick = { waterGoalDialog = false }) { Text("Cancel") }
+     }
+    )
+   }
+  SettingsSection("Privacy & app",Icons.Default.Security){Row(Modifier.fillMaxWidth().padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Lock,null,tint=Green);Column(Modifier.weight(1f).padding(start=12.dp)){Text("On-device privacy",fontWeight=FontWeight.SemiBold,color=Ink);Text("Food logs and settings are stored locally on this device.",fontSize=13.sp,color=Muted)}};Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Info,null,tint=Green);Text("Leanora • Android",Modifier.weight(1f).padding(start=12.dp),color=Ink);Text("v0.3",color=Muted)}}
  }
 }
 @Composable private fun SettingsSection(title:String,icon:androidx.compose.ui.graphics.vector.ImageVector,content:@Composable ColumnScope.()->Unit){Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column{Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically){Icon(icon,null,tint=Green);Text(title,Modifier.padding(start=10.dp),fontWeight=FontWeight.Bold,color=Ink)};HorizontalDivider(color=Cream);content()}}}
