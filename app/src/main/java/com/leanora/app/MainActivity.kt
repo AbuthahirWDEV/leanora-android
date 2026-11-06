@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
+import java.util.Locale
 
 private val Cream=Color(0xFFF7F5EF); private val Green=Color(0xFF176B52); private val Ink=Color(0xFF1C2924); private val Muted=Color(0xFF718078)
 data class Food(val name:String,val kcal:Int,val protein:Int,val carbs:Int,val fat:Int,val meal:String)
