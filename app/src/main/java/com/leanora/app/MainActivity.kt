@@ -47,7 +47,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
 @Composable fun LeanoraApp(ctx:Context){
  val prefs=remember{ctx.getSharedPreferences("leanora",Context.MODE_PRIVATE)}; val scope=rememberCoroutineScope()
  var foods by remember{mutableStateOf(loadFoods(prefs))}; var goal by remember{mutableIntStateOf(prefs.getInt("goal",1850))}; var weight by remember{mutableFloatStateOf(prefs.getFloat("weight",78f))}; var target by remember{mutableFloatStateOf(prefs.getFloat("target",72f))}
- var onboarded by remember{mutableStateOf(prefs.getBoolean("onboarded",false))}; var welcome by remember{mutableStateOf(!prefs.getBoolean("welcome_seen",false))}; var splash by remember{mutableStateOf(true)}\n LaunchedEffect(Unit){delay(1800);splash=false}
+ var onboarded by remember{mutableStateOf(prefs.getBoolean("onboarded",false))}; var welcome by remember{mutableStateOf(!prefs.getBoolean("welcome_seen",false))}; var splash by remember{mutableStateOf(true)}
+ LaunchedEffect(Unit){delay(1800);splash=false}
  var profileName by remember{mutableStateOf(prefs.getString("profile_name","") ?: "")}
  var profileAge by remember{mutableIntStateOf(prefs.getInt("profile_age",26))}
  var profileSex by remember{mutableStateOf(prefs.getString("profile_sex","Male") ?: "Male")}
@@ -110,6 +111,17 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  }
 }
 
+@Composable private fun LeanoraSplash(){
+ val transition=rememberInfiniteTransition(label="splash-loader")
+ val alpha by transition.animateFloat(initialValue=.35f,targetValue=1f,animationSpec=infiniteRepeatable(tween(700),RepeatMode.Reverse),label="loader-alpha")
+ Box(Modifier.fillMaxSize().background(Color(0xFF28211D)),contentAlignment=Alignment.Center){Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(18.dp)){
+ Box(Modifier.size(112.dp).background(Color(0xFFFF7A32),RoundedCornerShape(32.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Favorite,null,tint=Color(0xFFFFD7B8),modifier=Modifier.size(56.dp))}
+ Text("LEANORA",fontSize=32.sp,fontWeight=FontWeight.ExtraBold,letterSpacing=5.sp,color=Color.White)
+ Text("Nourish your goals. Own your journey.",fontSize=14.sp,color=Color(0xFFFFDCC7))
+ Spacer(Modifier.height(18.dp));CircularProgressIndicator(color=Color(0xFFFF7A32),modifier=Modifier.size(28.dp),strokeWidth=3.dp)
+ Text("Getting things ready…",fontSize=12.sp,color=Color.White.copy(alpha=alpha))
+ }}
+}
 @Composable private fun LeanoraWelcome(onStart:()->Unit){
  val transition=rememberInfiniteTransition(label="leanora-splash")
  val scale by transition.animateFloat(initialValue=.94f,targetValue=1.06f,animationSpec=infiniteRepeatable(tween(1200,easing=FastOutSlowInEasing),RepeatMode.Reverse),label="logo-scale")
