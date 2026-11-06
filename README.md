@@ -1,36 +1,57 @@
 # Leanora Android
 
-Native Android nutrition and wellness tracker built with Kotlin + Jetpack Compose.
+Leanora is a native Android nutrition and wellness tracker built with Kotlin and Jetpack Compose.
 
-## Android features
-- Daily calorie and macro dashboard
-- Food diary with local persistence
-- Food catalog with common foods
-- Add food through Android speech recognition
-- Camera food photo estimate (requires configured backend)
-- Barcode scan with Google ML Kit Code Scanner and Open Food Facts lookup
-- Weight updates and dated weight history
-- Dark theme toggle
-- Gemini AI nutrition coach via secure FastAPI backend
-- Text-to-speech for coach responses
+## Features
 
-## Build APK
-Open this repository in Android Studio, sync Gradle, then:
-- Build > Build Bundle(s) / APK(s) > Build APK(s)
-- APK: `app/build/outputs/apk/debug/app-debug.apk`
+- Onboarding profile (age, sex, height, weight, goal and activity)
+- Estimated daily calorie target and calorie/macronutrient dashboard
+- Food diary with date navigation and local persistence
+- Food catalog search, custom food entry, edit and delete
+- Food logging by voice (English and Tamil)
+- Food photo calorie estimate using the backend AI service
+- Barcode scanning with Google ML Kit Code Scanner and Open Food Facts nutrition lookup
+- Manual barcode entry as a fallback
+- Water tracking with a configurable daily hydration goal, saved by diary date
+- Weight tracking and progress trend/history
+- AI nutrition coach with backend Gemini integration and text-to-speech
+- Dark mode and settings for goals, profile, backend URL and hydration target
+- Branded launcher icon and CI-generated debug APK
 
-GitHub Actions is configured to build and upload the debug APK on pushes to main.
+Nutrition and AI estimates are approximate. Barcode information may be incomplete or unavailable. Leanora is a wellness aid, not a medical device or substitute for professional advice.
 
-## Backend (AI Coach and food-photo estimate)
-1. Deploy the `backend/` directory to Render using the root `render.yaml` blueprint.
-2. Add `GEMINI_API_KEY` as a secret environment variable in Render. Never put it in the Android app or commit it.
-3. Wait for the service to become healthy at `/health`.
-4. Copy the HTTPS service URL into Leanora > Settings > AI backend URL.
+## Build the Android app
+
+Requirements:
+- Android Studio / Android SDK 35
+- JDK 17
+- Gradle 8.9 (CI uses Gradle 8.9)
+
+From the repository root:
+
+```bash
+gradle assembleDebug
+```
+
+APK output:
+`app/build/outputs/apk/debug/app-debug.apk`
+
+GitHub Actions builds the debug APK on pushes and pull requests to `main`. Download the artifact named `leanora-debug-apk` from the successful workflow run.
+
+## Barcode scanner
+
+The in-app ML Kit scanner uses Google Play services. On first use, Google Play services may download the scanner UI module. If scanning is unavailable, use **Enter barcode manually** as a fallback. Product nutrition is looked up through Open Food Facts and can be missing for some products.
+
+## Backend: AI Coach and food photo estimate
+
+1. Deploy the `backend/` directory using the Render blueprint in `render.yaml`.
+2. Configure `GEMINI_API_KEY` as a secret environment variable in Render. Never place this key in the Android app or commit it.
+3. Confirm the service is healthy at `/health`.
+4. Set the service HTTPS URL in Leanora → Settings → AI backend URL.
 
 Endpoints:
 - `GET /health`
 - `POST /v1/coach`
-- `POST /v1/food-estimate` (multipart image upload)
+- `POST /v1/food-estimate` (multipart image upload; JPEG/PNG/WEBP, max 8 MB)
 
-## Important
-Food nutrition values and photo estimates are approximate. Barcode data from Open Food Facts may be incomplete. This app is a nutrition aid, not medical advice. AI features require a Gemini API key on the backend.
+AI endpoints require a valid server-side Gemini API key. The app can continue to use local food logging and tracking without AI service availability.
