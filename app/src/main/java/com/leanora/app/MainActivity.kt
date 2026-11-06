@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
 
 private val Cream=Color(0xFFF7F5EF); private val Green=Color(0xFF176B52); private val Ink=Color(0xFF1C2924); private val Muted=Color(0xFF718078)
 data class Food(val name:String,val kcal:Int,val protein:Int,val carbs:Int,val fat:Int,val meal:String)
@@ -46,5 +47,6 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
 @Composable private fun Macro(title:String,value:String,m:Modifier){Card(m,shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.padding(12.dp)){Text(title,color=Muted,fontSize=12.sp);Text(value,color=Ink,fontWeight=FontWeight.Bold)}}}
 @Composable private fun FoodCard(x:Food,m:Modifier=Modifier){Card(m,shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(x.name,color=Ink,fontWeight=FontWeight.SemiBold);Text(x.meal+" • P"+x.protein+" C"+x.carbs+" F"+x.fat+"g",fontSize=11.sp,color=Muted)};Text(x.kcal.toString()+" kcal",color=Green,fontWeight=FontWeight.Bold)}}}
 @Composable private fun Info(title:String,body:String){Card(shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(title,color=Ink,fontWeight=FontWeight.SemiBold);Text(body,color=Muted)}}}
-private fun saveFoods(p:android.content.SharedPreferences,foods:List<Food>){val a=JSONArray();foods.forEach{a.put(JSONObject().put("name",it.name).put("kcal",it.kcal).put("protein",it.protein).put("carbs",it.carbs).put("fat",it.fat).put("meal",it.meal))};p.edit().putString("foods",a.toString()).apply()}
-private fun loadFoods(p:android.content.SharedPreferences):List<Food>{val raw=p.getString("foods",null)?:return emptyList();return try{val a=JSONArray(raw);(0 until a.length()).map{val o=a.getJSONObject(it);Food(o.getString("name"),o.getInt("kcal"),o.getInt("protein"),o.getInt("carbs"),o.getInt("fat"),o.getString("meal"))}}catch(_:Exception){emptyList()}}
+private fun todayKey() = "foods_" + LocalDate.now().toString()
+private fun saveFoods(p:android.content.SharedPreferences,foods:List<Food>){val a=JSONArray();foods.forEach{a.put(JSONObject().put("name",it.name).put("kcal",it.kcal).put("protein",it.protein).put("carbs",it.carbs).put("fat",it.fat).put("meal",it.meal))};p.edit().putString(todayKey(),a.toString()).apply()}
+private fun loadFoods(p:android.content.SharedPreferences):List<Food>{val raw=p.getString(todayKey(),null)?:return emptyList();return try{val a=JSONArray(raw);(0 until a.length()).map{val o=a.getJSONObject(it);Food(o.getString("name"),o.getInt("kcal"),o.getInt("protein"),o.getInt("carbs"),o.getInt("fat"),o.getString("meal"))}}catch(_:Exception){emptyList()}}
