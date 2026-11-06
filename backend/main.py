@@ -41,6 +41,41 @@ def coach(req: CoachRequest):
     except Exception as exc:
         raise HTTPException(status_code=502, detail="AI provider request failed.") from exc
 
+class FoodTextRequest(BaseModel):
+    description: str = Field(min_length=1, max_length=1000)
+
+@app.post("/v1/food-text-estimate")
+def estimate_food_text(req: FoodTextRequest):
+    if client is None:
+        raise HTTPException(status_code=503, detail="AI service is not configured. Set GEMINI_API_KEY on the server.")
+    prompt = (
+        "Estimate nutrition for this food description, which may be in English or Tamil. "
+        "Infer reasonable portions only when necessary and explicitly label the portion as an estimate. "
+        "Return ONLY valid JSON with keys food_name, portion, calories_kcal, protein_g, carbs_g, fat_g, meal. "
+        "Nutrition values must be nonnegative integers; use meal Breakfast, Lunch, Dinner, or Snack. "
+        "Do not claim exact nutrition. If the food/quantity is unclear, give a conservative approximate estimate. "
+        f"Food description: {req.description}"
+    )
+    try:
+        import json
+        result = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+        raw = (result.text or "{}").strip()
+        tick = chr(96) * 3
+        raw = raw.replace(tick + "json", "").replace(tick, "").strip()
+        data = json.loads(raw)
+        data["calories_kcal"] = max(0, int(data.get("calories_kcal", 0)))
+        for key in ("protein_g", "carbs_g", "fat_g"):
+            data[key] = max(0, int(data.get(key, 0)))
+        if data["calories_kcal"] <= 0:
+            raise ValueError("No valid calorie estimate")
+        data["food_name"] = str(data.get("food_name") or req.description[:80])[:120]
+        data["portion"] = str(data.get("portion") or "estimated serving")[:80]
+        if data.get("meal") not in {"Breakfast", "Lunch", "Dinner", "Snack"}:
+            data["meal"] = "Snack"
+        return data
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Could not estimate nutrition from food description.") from exc
+
 @app.post("/v1/food-estimate")
 async def estimate_food(image: UploadFile = File(...), meal: str = Form("Meal")):
     if client is None:
