@@ -19,6 +19,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.*
 import androidx.compose.animation.*
@@ -189,7 +190,26 @@ private fun calorieTarget(age:Int,sex:String,height:Int,weight:Float,activity:St
 }
 @Composable private fun EditFoodDialog(food:Food,onDismiss:()->Unit,onSave:(Food)->Unit){var name by remember{mutableStateOf(food.name)};var kcal by remember{mutableStateOf(food.kcal.toString())};var protein by remember{mutableStateOf(food.protein.toString())};var carbs by remember{mutableStateOf(food.carbs.toString())};var fat by remember{mutableStateOf(food.fat.toString())};var meal by remember{mutableStateOf(food.meal)};AlertDialog(onDismissRequest=onDismiss,title={Text("Edit food entry")},text={Column(verticalArrangement=Arrangement.spacedBy(6.dp)){OutlinedTextField(name,{name=it},label={Text("Food name")});OutlinedTextField(kcal,{kcal=it.filter(Char::isDigit)},label={Text("Calories")});OutlinedTextField(protein,{protein=it.filter(Char::isDigit)},label={Text("Protein (g)")});OutlinedTextField(carbs,{carbs=it.filter(Char::isDigit)},label={Text("Carbs (g)")});OutlinedTextField(fat,{fat=it.filter(Char::isDigit)},label={Text("Fat (g)")});Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){listOf("Breakfast","Lunch","Dinner","Snack").forEach{FilterChip(selected=meal==it,onClick={meal=it},label={Text(it)})}}}},confirmButton={TextButton(onClick={val n=kcal.toIntOrNull();if(n!=null)onSave(food.copy(name=name,kcal=n,protein=protein.toIntOrNull()?:0,carbs=carbs.toIntOrNull()?:0,fat=fat.toIntOrNull()?:0,meal=meal))}){Text("Save")}},dismissButton={TextButton(onClick=onDismiss){Text("Cancel")}})}
 
-@Composable private fun Progress(w:Float,t:Float,historyJson:String,m:Modifier,edit:()->Unit){val history=remember(historyJson){try{val arr=JSONArray(historyJson);(0 until arr.length()).map{val o=arr.getJSONObject(it);o.optString("date")+" • "+o.optDouble("kg")+" kg"}.reversed().take(8)}catch(_:Exception){emptyList<String>()}};Column(m.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){Text("Progress",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);Info("Current weight",w.toString()+" kg");Info("Target weight",t.toString()+" kg");Info("Remaining to target",String.format(Locale.US,"%.1f kg",kotlin.math.abs(w-t)));Button(onClick=edit){Text("Add weight measurement")};Info("Recent measurements",history.joinToString("\n").ifBlank{"No measurements yet. Add your first weight."})}}
+@Composable private fun Progress(w:Float,t:Float,historyJson:String,m:Modifier,edit:()->Unit){
+ val points=remember(historyJson){try{val arr=JSONArray(historyJson);(0 until arr.length()).map{val o=arr.getJSONObject(it);o.optDouble("kg",w.toDouble()).toFloat()}.takeLast(7)}catch(_:Exception){emptyList<Float>()}}
+ val history=remember(historyJson){try{val arr=JSONArray(historyJson);(0 until arr.length()).map{val o=arr.getJSONObject(it);o.optString("date")+" • "+String.format(Locale.US,"%.1f",o.optDouble("kg"))+" kg"}.reversed().take(8)}catch(_:Exception){emptyList<String>()}}
+ Column(m.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+  Text("Progress",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink)
+  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Card(Modifier.weight(1f),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.padding(14.dp)){Text("Current",fontSize=12.sp,color=Muted);Text(String.format(Locale.US,"%.1f kg",w),fontSize=22.sp,fontWeight=FontWeight.Bold,color=Ink)}};Card(Modifier.weight(1f),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.padding(14.dp)){Text("Target",fontSize=12.sp,color=Muted);Text(String.format(Locale.US,"%.1f kg",t),fontSize=22.sp,fontWeight=FontWeight.Bold,color=Green)}}}
+  Info("Remaining to target",String.format(Locale.US,"%.1f kg",kotlin.math.abs(w-t)))
+  Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("Weight trend",fontWeight=FontWeight.Bold,color=Ink);Text(if(points.size<2)"Log at least two measurements to see your trend." else "Last ${points.size} measurements",fontSize=12.sp,color=Muted);if(points.isNotEmpty())WeightTrendChart(points,Modifier.fillMaxWidth().height(150.dp));if(points.isNotEmpty())Text("Min ${String.format(Locale.US,"%.1f",points.minOrNull())} kg  •  Max ${String.format(Locale.US,"%.1f",points.maxOrNull())} kg",fontSize=12.sp,color=Muted)}}
+  Button(onClick=edit,modifier=Modifier.fillMaxWidth()){Text("Add weight measurement")}
+  Info("Recent measurements",history.joinToString("\n").ifBlank{"No measurements yet. Add your first weight."})
+ }
+}
+@Composable private fun WeightTrendChart(values:List<Float>,modifier:Modifier=Modifier){
+ Canvas(modifier){if(values.isNotEmpty()){val minV=(values.minOrNull()?:0f)-1f;val maxV=(values.maxOrNull()?:1f)+1f;val range=(maxV-minV).coerceAtLeast(1f);val left=12f;val right=size.width-12f;val top=12f;val bottom=size.height-12f
+ for(i in 0..3){val y=top+(bottom-top)*i/3f;drawLine(color=Color(0xFFEDE4DC),start=androidx.compose.ui.geometry.Offset(left,y),end=androidx.compose.ui.geometry.Offset(right,y),strokeWidth=1f)}
+ val pts=values.mapIndexed{index,value->androidx.compose.ui.geometry.Offset(if(values.size==1)(left+right)/2 else left+(right-left)*index/(values.size-1),bottom-(value-minV)/range*(bottom-top))}
+ pts.zipWithNext().forEach{(a,b)->drawLine(color=Green,start=a,end=b,strokeWidth=4f,cap=androidx.compose.ui.graphics.StrokeCap.Round)}
+ pts.forEach{drawCircle(color=Green,radius=5f,center=it);drawCircle(color=Color.White,radius=2f,center=it)}
+ }}
+}
 @Composable private fun Coach(k:Int,g:Int,p:Int,m:Modifier,api:String){
  val scope=rememberCoroutineScope();val context=LocalContext.current;val tts=remember{TextToSpeech(context){}};DisposableEffect(tts){onDispose{tts.shutdown()}};var question by remember{mutableStateOf("")};var answer by remember{mutableStateOf("Hi! Ask me about your food, calories, or nutrition.")};var loading by remember{mutableStateOf(false)}
  Column(m.fillMaxSize().padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
