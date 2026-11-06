@@ -17,6 +17,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.*
 import androidx.compose.animation.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,7 +39,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.util.Locale
 
-private val Cream=Color(0xFFF5F3FF); private val Green=Color(0xFF6656D9); private val Ink=Color(0xFF19172B); private val Muted=Color(0xFF77758B); private val Mint=Color(0xFFB8F2D6); private val Lavender=Color(0xFFE9E4FF)
+private val Cream=Color(0xFFFFF8F1); private val Green=Color(0xFFFF7A32); private val Ink=Color(0xFF24201D); private val Muted=Color(0xFF82766E); private val Mint=Color(0xFFFFD7B8); private val Lavender=Color(0xFFFFE9D8)
 data class Food(val name:String,val kcal:Int,val protein:Int,val carbs:Int,val fat:Int,val meal:String)
 private val catalog=listOf(Food("Idli (2)",130,4,26,1,"Breakfast"),Food("Plain dosa",170,4,30,4,"Breakfast"),Food("Chapati",120,3,22,3,"Lunch"),Food("Cooked rice (150 g)",195,4,42,0,"Lunch"),Food("Chicken breast (100 g)",165,31,0,4,"Lunch"),Food("Boiled egg",78,6,1,5,"Snack"),Food("Banana",105,1,27,0,"Snack"),Food("Paneer (100 g)",265,18,4,20,"Dinner"),Food("Curd (100 g)",61,3,5,3,"Dinner"))
 class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{LeanoraApp(applicationContext)}}}
@@ -111,14 +113,14 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val transition=rememberInfiniteTransition(label="leanora-splash")
  val scale by transition.animateFloat(initialValue=.94f,targetValue=1.06f,animationSpec=infiniteRepeatable(tween(1200,easing=FastOutSlowInEasing),RepeatMode.Reverse),label="logo-scale")
  val rotation by transition.animateFloat(initialValue=-4f,targetValue=4f,animationSpec=infiniteRepeatable(tween(1800,easing=FastOutSlowInEasing),RepeatMode.Reverse),label="logo-rotation")
- Box(Modifier.fillMaxSize().background(Color(0xFF17152A)).padding(28.dp),contentAlignment=Alignment.Center){
+ Box(Modifier.fillMaxSize().background(Color(0xFF28211D)).padding(28.dp),contentAlignment=Alignment.Center){
   Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(18.dp)){
-   Box(Modifier.size(128.dp).graphicsLayer{scaleX=scale;scaleY=scale;rotationZ=rotation}.background(Color(0xFF6656D9),RoundedCornerShape(36.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Favorite,null,tint=Mint,modifier=Modifier.size(62.dp))}
+   Box(Modifier.size(128.dp).graphicsLayer{scaleX=scale;scaleY=scale;rotationZ=rotation}.background(Color(0xFFFF7A32),RoundedCornerShape(36.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Favorite,null,tint=Mint,modifier=Modifier.size(62.dp))}
    Text("LEANORA",fontSize=34.sp,fontWeight=FontWeight.ExtraBold,letterSpacing=5.sp,color=Color.White)
-   Text("Nourish your goals. Own your journey.",fontSize=15.sp,color=Color(0xFFCBC7E8))
+   Text("Nourish your goals. Own your journey.",fontSize=15.sp,color=Color(0xFFFFDCC7))
    Spacer(Modifier.height(32.dp))
-   Button(onClick=onStart,modifier=Modifier.fillMaxWidth().height(56.dp),shape=RoundedCornerShape(18.dp),colors=ButtonDefaults.buttonColors(containerColor=Mint,contentColor=Color(0xFF17152A))){Text("Get started",fontSize=17.sp,fontWeight=FontWeight.Bold);Spacer(Modifier.width(8.dp));Icon(Icons.Default.ArrowForward,null)}
-   Text("Your wellness, thoughtfully tracked.",fontSize=12.sp,color=Color(0xFFAAA6C9))
+   Button(onClick=onStart,modifier=Modifier.fillMaxWidth().height(56.dp),shape=RoundedCornerShape(18.dp),colors=ButtonDefaults.buttonColors(containerColor=Mint,contentColor=Color(0xFF28211D))){Text("Get started",fontSize=17.sp,fontWeight=FontWeight.Bold);Spacer(Modifier.width(8.dp));Icon(Icons.Default.ArrowForward,null)}
+   Text("Your wellness, thoughtfully tracked.",fontSize=12.sp,color=Color(0xFFD2B7A7))
   }
  }
 }
