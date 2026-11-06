@@ -3,6 +3,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.content.Intent
 import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.DisposableEffect
 import android.widget.Toast
 import com.google.android.gms.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
@@ -55,7 +58,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
 @Composable private fun Diary(food:List<Food>,m:Modifier,add:()->Unit,remove:(Int)->Unit){Column(m.fillMaxSize().padding(16.dp)){Text("Food diary",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);Text("Track meals throughout the day",color=Muted);Button(onClick=add,modifier=Modifier.fillMaxWidth()){Text("Add food")};LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)){items(food.size){i->Row(verticalAlignment=Alignment.CenterVertically){FoodCard(food[i],Modifier.weight(1f));TextButton(onClick={remove(i)}){Text("Remove")}}}}}}
 @Composable private fun Progress(w:Float,t:Float,historyJson:String,m:Modifier,edit:()->Unit){val history=remember(historyJson){try{val arr=JSONArray(historyJson);(0 until arr.length()).map{val o=arr.getJSONObject(it);o.optString("date")+" • "+o.optDouble("kg")+" kg"}.reversed().take(8)}catch(_:Exception){emptyList<String>()}};Column(m.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){Text("Progress",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink);Info("Current weight",w.toString()+" kg");Info("Target weight",t.toString()+" kg");Info("Remaining to target",String.format(Locale.US,"%.1f kg",kotlin.math.abs(w-t)));Button(onClick=edit){Text("Add weight measurement")};Info("Recent measurements",history.joinToString("\\n").ifBlank{"No measurements yet. Add your first weight."})}}
 @Composable private fun Coach(k:Int,g:Int,p:Int,m:Modifier,api:String){
- val scope=rememberCoroutineScope();var question by remember{mutableStateOf("")};var answer by remember{mutableStateOf("Hi! Ask me about your food, calories, or nutrition.")};var loading by remember{mutableStateOf(false)}
+ val scope=rememberCoroutineScope();val context=LocalContext.current;val tts=remember{TextToSpeech(context){status->if(status==TextToSpeech.SUCCESS)ttsLanguageSetup()}};DisposableEffect(tts){onDispose{tts.shutdown()}};var question by remember{mutableStateOf("")};var answer by remember{mutableStateOf("Hi! Ask me about your food, calories, or nutrition.")};var loading by remember{mutableStateOf(false)}
  Column(m.fillMaxSize().padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
  Text("Leanora Coach",fontSize=28.sp,fontWeight=FontWeight.Bold,color=Ink)
  Info("Today","Calories: "+k+" / "+g+" kcal • Protein: "+p+" g")
@@ -85,7 +88,7 @@ private fun lookupFoodBarcode(code:String):Food{
  }catch(_:Exception){Food("Barcode "+code+" (nutrition unavailable)",0,0,0,0,"Snack")}
 }
 
-private suspend fun askLeanora(base:String,question:String,kcal:Int,goal:Int,protein:Int):String{
+private fun ttsLanguageSetup(){}\nprivate suspend fun askLeanora(base:String,question:String,kcal:Int,goal:Int,protein:Int):String{
  if(base.isBlank())return "Please set your deployed backend URL in Settings to activate AI Coach."
  return try{withContext(Dispatchers.IO){val connection=(URL(base.trimEnd('/')+"/v1/coach").openConnection() as java.net.HttpURLConnection);connection.requestMethod="POST";connection.connectTimeout=15000;connection.readTimeout=30000;connection.doOutput=true;connection.setRequestProperty("Content-Type","application/json");val payload=JSONObject().put("message",question).put("language","English").put("calorie_goal",goal).put("calories_consumed",kcal).put("protein_consumed_g",protein).toString();connection.outputStream.use{it.write(payload.toByteArray())};val code=connection.responseCode;val response=(if(code in 200..299)connection.inputStream else connection.errorStream).bufferedReader().use{it.readText()};connection.disconnect();if(code in 200..299)JSONObject(response).optString("answer","No answer returned.")else "AI server error "+code}}catch(_:Exception){"Could not connect. Verify the backend URL and network."}
 }
