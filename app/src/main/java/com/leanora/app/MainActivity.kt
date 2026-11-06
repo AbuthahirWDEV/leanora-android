@@ -55,6 +55,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
    title = { Text("Add food") },
    text = {
     Column {
+     Button(onClick={customDialog=true},modifier=Modifier.fillMaxWidth()){Text("Custom food / portion")}
      Button(onClick = { cameraLauncher.launch(null) }, modifier = Modifier.fillMaxWidth()) { Text("Camera • estimate food") }
      Button(onClick = {
       val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
