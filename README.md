@@ -10,7 +10,7 @@ Leanora is a native Android nutrition and wellness tracker built with Kotlin and
 - Food catalog search, custom food entry, edit and delete
 - Food logging by voice (English and Tamil), with AI portion and macro estimation from spoken food descriptions
 - Food photo calorie estimate using the backend AI service
-- Barcode scanning with Google ML Kit Code Scanner and Open Food Facts nutrition lookup
+- In-app CameraX barcode scanning for UPC/EAN retail codes with Open Food Facts nutrition lookup
 - Manual barcode entry as a fallback
 - Water tracking with a configurable daily hydration goal, saved by diary date
 - Weight tracking and progress trend/history
@@ -40,7 +40,7 @@ GitHub Actions builds the debug APK on pushes and pull requests to `main`. Downl
 
 ## Barcode scanner
 
-The in-app ML Kit scanner uses Google Play services. On first use, Google Play services may download the scanner UI module. If scanning is unavailable, use **Enter barcode manually** as a fallback. Product nutrition is looked up through Open Food Facts and can be missing for some products.
+The in-app camera analyzes UPC/EAN retail barcodes only; it does not open Google Lens or scan QR codes. If scanning is unavailable, use **Enter barcode manually** as a fallback. Product nutrition is looked up through Open Food Facts and can be missing for some products.
 
 ## Backend: AI Coach and food photo estimate
 
@@ -52,6 +52,7 @@ The in-app ML Kit scanner uses Google Play services. On first use, Google Play s
 Endpoints:
 - `GET /health`
 - `POST /v1/coach`
-- `POST /v1/food-estimate` (multipart image upload; JPEG/PNG/WEBP, max 8 MB)\n- `POST /v1/food-text-estimate` (JSON food description in English or Tamil; estimated calories, macros, portion, and meal category)
+- `POST /v1/food-estimate` (multipart image upload; JPEG/PNG/WEBP, max 8 MB)
+- `POST /v1/food-text-estimate` (JSON food description in English or Tamil; estimated calories, macros, portion, and meal category)
 
 AI endpoints require a valid server-side Gemini API key. The app can continue to use local food logging and tracking without AI service availability.
