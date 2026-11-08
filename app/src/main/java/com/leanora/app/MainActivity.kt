@@ -378,7 +378,7 @@ private fun calorieTarget(age:Int,sex:String,height:Int,weight:Float,activity:St
   SettingsSection("Profile & goals",Icons.Default.Person){SettingsAction(Icons.Default.Edit,"Edit personal profile","Name, age, activity and goal",editProfile);SettingsAction(Icons.Default.LocalFireDepartment,"Daily calorie goal","${g} kcal • Tap to adjust",goal);SettingsAction(Icons.Default.MonitorWeight,"Current weight","${w} kg • Update measurement",weight);SettingsAction(Icons.Default.Flag,"Target weight","${t} kg • Set your goal",target)}
   SettingsSection("Hydration",Icons.Default.WaterDrop){SettingsAction(Icons.Default.WaterDrop,"Daily water target","${waterGoal} ml • Tap to change",{waterGoalText=waterGoal.toString();waterGoalDialog=true})}
    SettingsSection("Appearance",Icons.Default.Palette){Row(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.DarkMode,null,tint=Orange);Column(Modifier.weight(1f).padding(start=12.dp)){Text("Dark mode",fontWeight=FontWeight.SemiBold,color=MaterialTheme.colorScheme.onSurface);Text("Use a darker color scheme",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)};Switch(checked=dark,onCheckedChange=onDark,modifier=Modifier.semantics{contentDescription="Dark mode switch"})}}
-  SettingsSection("Connectivity",Icons.Default.Cloud){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("Backend API URL",fontWeight=FontWeight.SemiBold,color=MaterialTheme.colorScheme.onSurface);OutlinedTextField(value=backend,onValueChange=onBackend,modifier=Modifier.fillMaxWidth(),placeholder={Text("https://your-service.onrender.com")},singleLine=true,shape=RoundedCornerShape(14.dp),leadingIcon={Icon(Icons.Default.Link,null)});Button(enabled=!apiChecking&&backend.isNotBlank(),onClick={apiChecking=true;apiOk=null;apiStatus="Checking server…";scope.launch{val result=withContext(Dispatchers.IO){try{val conn=(URL(backend.trim().trimEnd('/')).openConnection() as java.net.HttpURLConnection);conn.requestMethod="GET";conn.connectTimeout=10000;conn.readTimeout=10000;val code=conn.responseCode;conn.disconnect();code}catch(e:Exception){-1}};apiChecking=false;apiOk=result in 200..499;apiStatus=if(result in 200..499)"Server reachable (HTTP $result)" else "Connection failed • check URL/network"}} ,modifier=Modifier.fillMaxWidth()){Text(if(apiChecking)"Testing connection…" else "Test backend connection")};Text(apiStatus,color=when(apiOk){true->Color(0xFF248A57);false->Color(0xFFB3261E);null->Muted},fontSize=13.sp)}}
+  SettingsSection("Connectivity",Icons.Default.Cloud){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("Backend API URL",fontWeight=FontWeight.SemiBold,color=MaterialTheme.colorScheme.onSurface);OutlinedTextField(value=backend,onValueChange=onBackend,modifier=Modifier.fillMaxWidth(),placeholder={Text("https://your-service.onrender.com")},singleLine=true,shape=RoundedCornerShape(14.dp),leadingIcon={Icon(Icons.Default.Link,null)});Button(enabled=!apiChecking&&backend.isNotBlank(),onClick={apiChecking=true;apiOk=null;apiStatus="Checking /health… this may take up to 2 minutes while the server wakes";scope.launch{val result=withContext(Dispatchers.IO){checkBackendHealth(backend)};apiChecking=false;apiOk=result.first;apiStatus=result.second}} ,modifier=Modifier.fillMaxWidth()){Text(if(apiChecking)"Waiting for server…" else "Test backend connection")};Text(apiStatus,color=when(apiOk){true->Color(0xFF248A57);false->Color(0xFFB3261E);null->Muted},fontSize=13.sp)}}
   if (waterGoalDialog) {
     AlertDialog(
      onDismissRequest = { waterGoalDialog = false },
@@ -434,30 +434,54 @@ private fun lookupFoodBarcode(code:String):Food{
 
 private suspend fun askLeanora(base:String,question:String,kcal:Int,goal:Int,protein:Int):String{
  if(base.isBlank())return "Please set your deployed backend URL in Settings to activate AI Coach."
- return try{withContext(Dispatchers.IO){val connection=(URL(base.trimEnd('/')+"/v1/coach").openConnection() as java.net.HttpURLConnection);connection.requestMethod="POST";connection.connectTimeout=15000;connection.readTimeout=30000;connection.doOutput=true;connection.setRequestProperty("Content-Type","application/json");val payload=JSONObject().put("message",question).put("language","English").put("calorie_goal",goal).put("calories_consumed",kcal).put("protein_consumed_g",protein).toString();connection.outputStream.use{it.write(payload.toByteArray())};val code=connection.responseCode;val response=(if(code in 200..299)connection.inputStream else connection.errorStream).bufferedReader().use{it.readText()};connection.disconnect();if(code in 200..299)JSONObject(response).optString("answer","No answer returned.")else "AI server error "+code}}catch(_:Exception){"Could not connect. Verify the backend URL and network."}
+ return try{withContext(Dispatchers.IO){val connection=(URL(base.trimEnd('/')+"/v1/coach").openConnection() as java.net.HttpURLConnection);connection.requestMethod="POST";connection.connectTimeout=30000;connection.readTimeout=120000;connection.doOutput=true;connection.setRequestProperty("Content-Type","application/json");val payload=JSONObject().put("message",question).put("language","English").put("calorie_goal",goal).put("calories_consumed",kcal).put("protein_consumed_g",protein).toString();connection.outputStream.use{it.write(payload.toByteArray())};val code=connection.responseCode;val response=(if(code in 200..299)connection.inputStream else connection.errorStream).bufferedReader().use{it.readText()};connection.disconnect();if(code in 200..299)JSONObject(response).optString("answer","No answer returned.")else "AI server returned HTTP $code: ${apiErrorMessage(response)}"}}catch(e:java.net.SocketTimeoutException){"The server took too long to respond. Try again in a moment."}catch(e:Exception){"Could not connect: ${e.localizedMessage ?: "check the backend URL and network"}"}
 }
+private fun checkBackendHealth(base:String):Pair<Boolean,String>{
+ var lastError="The server did not respond. Check the URL and network."
+ repeat(2){attempt->
+  var connection:java.net.HttpURLConnection?=null
+  try{
+   connection=(URL(base.trim().trimEnd('/')+"/health").openConnection() as java.net.HttpURLConnection)
+   connection.requestMethod="GET";connection.connectTimeout=90000;connection.readTimeout=90000
+   val code=connection.responseCode
+   val body=(if(code in 200..299)connection.inputStream else connection.errorStream)?.bufferedReader()?.use{it.readText()}.orEmpty()
+   if(code in 200..299){
+    val json=runCatching{JSONObject(body)}.getOrNull()
+    return if(json?.optString("status")=="ok") true to "Connected • Leanora API is healthy (HTTP $code)" else false to "Server responded, but /health returned an unexpected response."
+   }
+   lastError=if(code==502||code==503||code==504)"Server is waking or temporarily unavailable (HTTP $code)." else "Health check failed with HTTP $code${apiErrorMessage(body).let{if(it.isBlank())"" else ": $it"}}"
+   if(code !in setOf(502,503,504)) return false to lastError
+  }catch(e:java.net.SocketTimeoutException){lastError="Timed out waiting for /health; the free server may still be waking."}
+   catch(e:java.net.UnknownHostException){return false to "Could not find the server. Check the backend URL and your network."}
+   catch(e:Exception){lastError="Could not connect: ${e.localizedMessage ?: "check the URL and network"}"}
+  finally{connection?.disconnect()}
+  if(attempt==0)Thread.sleep(2000)
+ }
+ return false to lastError
+}
+private fun apiErrorMessage(response:String):String=runCatching{JSONObject(response).optString("detail","")}.getOrNull()?.take(180).orEmpty()
 private fun estimateFoodText(base:String,description:String):Food{
  if(base.isBlank())return Food("Voice nutrition estimate unavailable: set backend URL",0,0,0,0,"Snack")
  return try{
   val connection=(URL(base.trimEnd('/')+"/v1/food-text-estimate").openConnection() as java.net.HttpURLConnection)
-  connection.requestMethod="POST";connection.connectTimeout=15000;connection.readTimeout=30000;connection.doOutput=true;connection.setRequestProperty("Content-Type","application/json")
+  connection.requestMethod="POST";connection.connectTimeout=30000;connection.readTimeout=120000;connection.doOutput=true;connection.setRequestProperty("Content-Type","application/json")
   val payload=JSONObject().put("description",description.take(1000)).toString()
   connection.outputStream.use{it.write(payload.toByteArray(Charsets.UTF_8))}
   val code=connection.responseCode;val response=(if(code in 200..299)connection.inputStream else connection.errorStream).bufferedReader().use{it.readText()};connection.disconnect()
-  if(code !in 200..299)return Food("Voice estimate failed • check backend",0,0,0,0,"Snack")
+  if(code !in 200..299)return Food("Voice estimate failed (HTTP $code)${apiErrorMessage(response).let{if(it.isBlank())"" else ": $it"}}",0,0,0,0,"Snack")
   val obj=JSONObject(response);val kcal=obj.optInt("calories_kcal",0).coerceAtLeast(0)
   if(kcal<=0)return Food("Could not estimate nutrition for: "+description.take(50),0,0,0,0,"Snack")
   Food(obj.optString("food_name",description.take(60))+" • "+obj.optString("portion","estimated portion"),kcal,obj.optInt("protein_g",0).coerceAtLeast(0),obj.optInt("carbs_g",0).coerceAtLeast(0),obj.optInt("fat_g",0).coerceAtLeast(0),obj.optString("meal","Snack").let{if(it in listOf("Breakfast","Lunch","Dinner","Snack"))it else "Snack"})
- }catch(_:Exception){Food("Voice nutrition estimate failed • check backend",0,0,0,0,"Snack")}
+ }catch(e:java.net.SocketTimeoutException){Food("Voice estimate timed out • try again",0,0,0,0,"Snack")}catch(e:Exception){Food("Voice estimate connection failed • ${e.localizedMessage ?: "check backend"}",0,0,0,0,"Snack")}
 }
 private fun estimateFoodPhoto(base:String,bitmap:Bitmap):Food{
  if(base.isBlank())return Food("Photo estimate unavailable: set backend URL",0,0,0,0,"Meal")
  return try{
  val boundary="LeanoraBoundary"+System.currentTimeMillis();val bytes=java.io.ByteArrayOutputStream();bitmap.compress(Bitmap.CompressFormat.JPEG,85,bytes)
- val conn=(URL(base.trimEnd('/')+"/v1/food-estimate").openConnection() as java.net.HttpURLConnection);conn.requestMethod="POST";conn.doOutput=true;conn.connectTimeout=20000;conn.readTimeout=45000;conn.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary)
+ val conn=(URL(base.trimEnd('/')+"/v1/food-estimate").openConnection() as java.net.HttpURLConnection);conn.requestMethod="POST";conn.doOutput=true;conn.connectTimeout=30000;conn.readTimeout=120000;conn.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary)
  conn.outputStream.use{out->out.write(("--"+boundary+"\r\nContent-Disposition: form-data; name=\"meal\"\r\n\r\nMeal\r\n").toByteArray());out.write(("--"+boundary+"\r\nContent-Disposition: form-data; name=\"image\"; filename=\"meal.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n").toByteArray());out.write(bytes.toByteArray());out.write(("\r\n--"+boundary+"--\r\n").toByteArray())}
  val status=conn.responseCode;val stream=if(status in 200..299)conn.inputStream else conn.errorStream;val response=stream.bufferedReader().use{it.readText()};conn.disconnect()
- if(status !in 200..299) return Food("Food photo estimate failed",0,0,0,0,"Meal")
+ if(status !in 200..299) return Food("Food photo estimate failed (HTTP $status)${apiErrorMessage(response).let{if(it.isBlank())"" else ": $it"}}",0,0,0,0,"Meal")
  val obj=JSONObject(response);Food(obj.optString("food_name","Estimated meal")+" ("+obj.optInt("portion_g",0)+" g)",obj.optInt("calories_kcal",0),obj.optInt("protein_g",0),obj.optInt("carbs_g",0),obj.optInt("fat_g",0),"Meal")
- }catch(_:Exception){Food("Photo estimate failed • check backend",0,0,0,0,"Meal")}
+ }catch(e:java.net.SocketTimeoutException){Food("Photo estimate timed out • try again",0,0,0,0,"Meal")}catch(e:Exception){Food("Photo estimate connection failed • ${e.localizedMessage ?: "check backend"}",0,0,0,0,"Meal")}
 }
